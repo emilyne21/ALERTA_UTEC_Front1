@@ -78,19 +78,27 @@ export function EditProfilePage() {
         return;
       }
 
-      if (!formData.codigo.trim()) {
-        setError('El código de estudiante es requerido');
-        setLoading(false);
-        return;
-      }
+        if (!formData.codigo.trim()) {
+          setError('El código de estudiante es requerido');
+          setLoading(false);
+          return;
+        }
 
-      // Actualizar el usuario en localStorage
-      const updatedUser = updateRegisteredUser(user?.email || '', {
-        nombre: formData.nombre.trim(),
-        apellido: formData.apellido.trim(),
-        email: formData.email.trim(),
-        codigo: formData.codigo.trim(),
-      });
+        // Validar que el código tenga exactamente 9 dígitos
+        const codigoLimpio = formData.codigo.trim().replace(/\D/g, ''); // Solo números
+        if (codigoLimpio.length !== 9) {
+          setError('El código de estudiante debe tener exactamente 9 dígitos');
+          setLoading(false);
+          return;
+        }
+
+        // Actualizar el usuario en localStorage (usar código limpio con solo números)
+        const updatedUser = updateRegisteredUser(user?.email || '', {
+          nombre: formData.nombre.trim(),
+          apellido: formData.apellido.trim(),
+          email: formData.email.trim(),
+          codigo: codigoLimpio,
+        });
 
       if (!updatedUser) {
         setError('Error al actualizar el perfil');
@@ -104,11 +112,12 @@ export function EditProfilePage() {
         await login(formData.email, updatedUser.password);
       } else {
         // Si el email no cambió, solo actualizar el usuario en el contexto
+        const codigoLimpioParaContexto = formData.codigo.trim().replace(/\D/g, ''); // Solo números
         const updatedUserData: Usuario = {
           ...user!,
           nombre: formData.nombre.trim(),
           apellido: formData.apellido.trim(),
-          codigo: formData.codigo.trim(),
+          codigo: codigoLimpioParaContexto,
           email: formData.email.trim(),
         };
         updateUser(updatedUserData);
@@ -236,10 +245,20 @@ export function EditProfilePage() {
                 name="codigo"
                 type="text"
                 value={formData.codigo}
-                onChange={handleChange}
+                onChange={(e) => {
+                  // Solo permitir números
+                  const valor = e.target.value.replace(/\D/g, '');
+                  if (valor.length <= 9) {
+                    handleChange({ ...e, target: { ...e.target, value: valor } });
+                  }
+                }}
                 required
-                placeholder="Ingresa tu código de estudiante"
+                placeholder="202012345 (9 dígitos)"
+                maxLength={9}
               />
+              <p className="text-xs text-slate-500 mt-1">
+                Debe tener exactamente 9 dígitos numéricos
+              </p>
             </div>
           </div>
         </div>

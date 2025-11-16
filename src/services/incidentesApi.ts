@@ -1,11 +1,14 @@
-// NOTE: Este archivo está preparado para cuando el backend esté listo
-// Por ahora, useIncidentes maneja todo con datos mock en memoria
-
+import apiClient from './apiClient';
 import type { Incidente, HistorialItem, IncidenteFilters } from '../types/incidentes';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
-// Estas funciones no se usan en modo mock, pero están listas para cuando haya backend
+/**
+ * Lista todos los incidentes con filtros opcionales
+ * @param filters Filtros opcionales (estado, tipo, urgencia)
+ * @param token Token JWT (se añade automáticamente por el interceptor de apiClient)
+ * @returns Lista de incidentes
+ */
 export async function listarIncidentes(
   filters: IncidenteFilters = {},
   token: string
@@ -13,30 +16,38 @@ export async function listarIncidentes(
   if (!API_URL || API_URL.includes('tu-api')) {
     throw new Error('Backend no configurado. Usando modo mock.');
   }
-  
-  const params = new URLSearchParams();
-  if (filters.estado) params.append('estado', filters.estado);
-  if (filters.tipo) params.append('tipo', filters.tipo);
-  if (filters.urgencia) params.append('urgencia', filters.urgencia);
 
-  const queryString = params.toString();
-  const path = queryString ? `/incidentes?${queryString}` : '/incidentes';
+  try {
+    // Construir query params
+    const params = new URLSearchParams();
+    if (filters.estado) params.append('estado', filters.estado);
+    if (filters.tipo) params.append('tipo', filters.tipo);
+    if (filters.urgencia) params.append('urgencia', filters.urgencia);
 
-  const response = await fetch(`${API_URL}${path}`, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-    },
-  });
+    const queryString = params.toString();
+    const path = queryString ? `/incidentes?${queryString}` : '/incidentes';
 
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`);
+    // Usar apiClient que ya tiene el interceptor de JWT configurado
+    const response = await apiClient.get<Incidente[]>(path);
+
+    return response.data;
+  } catch (error: any) {
+    // Si el error ya tiene un mensaje, lanzarlo directamente
+    if (error.message) {
+      throw error;
+    }
+    
+    // Si no, crear un mensaje de error genérico
+    throw new Error('Error al cargar los incidentes. Intenta nuevamente.');
   }
-
-  return response.json();
 }
 
+/**
+ * Crea un nuevo reporte de incidente
+ * @param data Datos del incidente a crear
+ * @param token Token JWT (se añade automáticamente por el interceptor de apiClient)
+ * @returns El incidente creado
+ */
 export async function crearIncidente(
   data: {
     tipo: string;
@@ -50,20 +61,26 @@ export async function crearIncidente(
     throw new Error('Backend no configurado. Usando modo mock.');
   }
 
-  const response = await fetch(`${API_URL}/incidentes`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-    },
-    body: JSON.stringify(data),
-  });
+  try {
+    // Usar apiClient que ya tiene el interceptor de JWT configurado
+    // El token se añade automáticamente, pero lo pasamos por compatibilidad
+    const response = await apiClient.post<Incidente>('/incidentes', {
+      tipo: data.tipo,
+      ubicacion: data.ubicacion,
+      descripcion: data.descripcion,
+      urgencia: data.urgencia,
+    });
 
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`);
+    return response.data;
+  } catch (error: any) {
+    // Si el error ya tiene un mensaje, lanzarlo directamente
+    if (error.message) {
+      throw error;
+    }
+    
+    // Si no, crear un mensaje de error genérico
+    throw new Error('Error al crear el incidente. Verifica tus datos e intenta nuevamente.');
   }
-
-  return response.json();
 }
 
 export async function asignarIncidente(id: string, token: string): Promise<Incidente> {
@@ -106,25 +123,36 @@ export async function resolverIncidente(id: string, token: string): Promise<Inci
   return response.json();
 }
 
+/**
+ * Obtiene el historial de un incidente específico
+ * @param id ID del incidente
+ * @param token Token JWT (se añade automáticamente por el interceptor de apiClient)
+ * @returns Lista de items del historial
+ */
 export async function obtenerHistorial(
   id: string,
   token: string
 ): Promise<HistorialItem[]> {
+  if (!id) {
+    throw new Error('ID de incidente no proporcionado');
+  }
+
   if (!API_URL || API_URL.includes('tu-api')) {
     throw new Error('Backend no configurado. Usando modo mock.');
   }
 
-  const response = await fetch(`${API_URL}/incidentes/${id}/historial`, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-    },
-  });
+  try {
+    // Usar apiClient que ya tiene el interceptor de JWT configurado
+    const response = await apiClient.get<HistorialItem[]>(`/incidentes/${id}/historial`);
 
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`);
+    return response.data;
+  } catch (error: any) {
+    // Si el error ya tiene un mensaje, lanzarlo directamente
+    if (error.message) {
+      throw error;
+    }
+    
+    // Si no, crear un mensaje de error genérico
+    throw new Error('Error al cargar el historial. Intenta nuevamente.');
   }
-
-  return response.json();
 }

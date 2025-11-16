@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { Incidente, IncidenteFilters, HistorialItem, ChatMessage } from '../types/incidentes';
-import { mockIncidentesIniciales, mockHistorialInicial } from '../mocks/incidentes';
+import { crearIncidente as crearIncidenteApi, listarIncidentes as listarIncidentesApi } from '../services/incidentesApi';
 
-// Estado global en memoria (simula base de datos)
-let incidentesEnMemoria: Incidente[] = [...mockIncidentesIniciales];
-let historialEnMemoria: Record<string, HistorialItem[]> = { ...mockHistorialInicial };
+// Estado global en memoria (solo para modo mock)
+let incidentesEnMemoria: Incidente[] = [];
+let historialEnMemoria: Record<string, HistorialItem[]> = {};
 let mensajesEnMemoria: Record<string, ChatMessage[]> = {};
 
 // Función para simular delay de red
@@ -46,21 +46,32 @@ export function useIncidentes(token: string | null, filters: IncidenteFilters = 
     
     const loadData = async () => {
       try {
-        await delay(300); // Simular delay de red
-        
-        let filtered = [...incidentesEnMemoria];
-        
-        if (filters.estado) {
-          filtered = filtered.filter(inc => inc.estado === filters.estado);
+        const API_URL = import.meta.env.VITE_API_URL;
+        const USE_BACKEND = API_URL && !API_URL.includes('tu-api');
+
+        if (USE_BACKEND) {
+          // Cargar incidentes del backend
+          const incidentes = await listarIncidentesApi(filters, token);
+          setIncidentes(incidentes);
+        } else {
+          // Modo mock: usar datos en memoria
+          await delay(300);
+          
+          let filtered = [...incidentesEnMemoria];
+          
+          if (filters.estado) {
+            filtered = filtered.filter(inc => inc.estado === filters.estado);
+          }
+          if (filters.tipo) {
+            filtered = filtered.filter(inc => inc.tipo === filters.tipo);
+          }
+          if (filters.urgencia) {
+            filtered = filtered.filter(inc => inc.urgencia === filters.urgencia);
+          }
+          
+          setIncidentes(filtered);
         }
-        if (filters.tipo) {
-          filtered = filtered.filter(inc => inc.tipo === filters.tipo);
-        }
-        if (filters.urgencia) {
-          filtered = filtered.filter(inc => inc.urgencia === filters.urgencia);
-        }
         
-        setIncidentes(filtered);
         hasLoadedRef.current = true;
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Error al cargar incidentes');
@@ -79,20 +90,30 @@ export function useIncidentes(token: string | null, filters: IncidenteFilters = 
     setError(null);
     
     try {
-      await delay(300);
-      let filtered = [...incidentesEnMemoria];
-      
-      if (filters.estado) {
-        filtered = filtered.filter(inc => inc.estado === filters.estado);
+      const API_URL = import.meta.env.VITE_API_URL;
+      const USE_BACKEND = API_URL && !API_URL.includes('tu-api');
+
+      if (USE_BACKEND) {
+        // Cargar incidentes del backend
+        const incidentes = await listarIncidentesApi(filters, token);
+        setIncidentes(incidentes);
+      } else {
+        // Modo mock: usar datos en memoria
+        await delay(300);
+        let filtered = [...incidentesEnMemoria];
+        
+        if (filters.estado) {
+          filtered = filtered.filter(inc => inc.estado === filters.estado);
+        }
+        if (filters.tipo) {
+          filtered = filtered.filter(inc => inc.tipo === filters.tipo);
+        }
+        if (filters.urgencia) {
+          filtered = filtered.filter(inc => inc.urgencia === filters.urgencia);
+        }
+        
+        setIncidentes(filtered);
       }
-      if (filters.tipo) {
-        filtered = filtered.filter(inc => inc.tipo === filters.tipo);
-      }
-      if (filters.urgencia) {
-        filtered = filtered.filter(inc => inc.urgencia === filters.urgencia);
-      }
-      
-      setIncidentes(filtered);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al cargar incidentes');
     } finally {
@@ -108,37 +129,50 @@ export function useIncidentes(token: string | null, filters: IncidenteFilters = 
   }) => {
     if (!token) throw new Error('No hay token de autenticación');
 
+    const API_URL = import.meta.env.VITE_API_URL;
+    const USE_BACKEND = API_URL && !API_URL.includes('tu-api');
+
     try {
-      await delay(400);
-      
-      const userStr = localStorage.getItem('alerta_utec_user');
-      const user = userStr ? JSON.parse(userStr) : null;
-      
-      const nuevo: Incidente = {
-        id: `mock_${Date.now()}`,
-        estado: 'pendiente',
-        reportadoPor: user?.email || 'estudiante@utec.edu.pe',
-        creadoEn: Math.floor(Date.now() / 1000),
-        actualizadoEn: Math.floor(Date.now() / 1000),
-        tipo: data.tipo as any,
-        ubicacion: data.ubicacion,
-        descripcion: data.descripcion,
-        urgencia: data.urgencia as any,
-        atendidoPor: null,
-      };
-      
-      incidentesEnMemoria.unshift(nuevo);
-      
-      // Agregar al historial
-      historialEnMemoria[nuevo.id] = [{
-        timestamp: nuevo.creadoEn,
-        accion: 'CREADO',
-        realizadoPor: nuevo.reportadoPor,
-        detalles: 'Incidente creado con estado pendiente',
-      }];
-      
-      setIncidentes((prev) => [nuevo, ...prev]);
-      return nuevo;
+      if (USE_BACKEND) {
+        // Crear incidente con el backend
+        const nuevo = await crearIncidenteApi(data, token);
+        
+        // Actualizar el estado local con el incidente creado
+        setIncidentes((prev) => [nuevo, ...prev]);
+        return nuevo;
+      } else {
+        // Modo mock: crear en memoria
+        await delay(400);
+        
+        const userStr = localStorage.getItem('alerta_utec_user');
+        const user = userStr ? JSON.parse(userStr) : null;
+        
+        const nuevo: Incidente = {
+          id: `mock_${Date.now()}`,
+          estado: 'pendiente',
+          reportadoPor: user?.email || 'estudiante@utec.edu.pe',
+          creadoEn: Math.floor(Date.now() / 1000),
+          actualizadoEn: Math.floor(Date.now() / 1000),
+          tipo: data.tipo as any,
+          ubicacion: data.ubicacion,
+          descripcion: data.descripcion,
+          urgencia: data.urgencia as any,
+          atendidoPor: null,
+        };
+        
+        incidentesEnMemoria.unshift(nuevo);
+        
+        // Agregar al historial
+        historialEnMemoria[nuevo.id] = [{
+          timestamp: nuevo.creadoEn,
+          accion: 'CREADO',
+          realizadoPor: nuevo.reportadoPor,
+          detalles: 'Incidente creado con estado pendiente',
+        }];
+        
+        setIncidentes((prev) => [nuevo, ...prev]);
+        return nuevo;
+      }
     } catch (err) {
       throw err;
     }

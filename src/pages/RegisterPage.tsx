@@ -7,13 +7,13 @@ import { INTRANET_URL } from '../config/constants';
 import { UserGuideModal } from '../components/common/UserGuideModal';
 import { PrivacyPolicyModal } from '../components/common/PrivacyPolicyModal';
 import { saveRegisteredUser } from '../utils/userStorage';
+import { register as registerApi } from '../services/authApi';
 
 export function RegisterPage() {
   const [formData, setFormData] = useState({
     nombre: '',
     apellido: '',
     email: '',
-    codigo: '',
     password: '',
     confirmPassword: '',
   });
@@ -22,6 +22,7 @@ export function RegisterPage() {
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [isPrivacyOpen, setIsPrivacyOpen] = useState(false);
   const navigate = useNavigate();
+  const { setAuth } = useAuth();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -53,17 +54,34 @@ export function RegisterPage() {
     setLoading(true);
     
     try {
-      // Guardar el usuario registrado en localStorage
-      saveRegisteredUser({
-        email: formData.email,
-        password: formData.password,
-        nombre: formData.nombre,
-        apellido: formData.apellido,
-        codigo: formData.codigo,
-      });
-      
-      // Redirigir a la página de login
-      navigate('/login', { replace: true });
+      const API_URL = import.meta.env.VITE_API_URL;
+      const USE_BACKEND = API_URL && !API_URL.includes('tu-api');
+
+      if (USE_BACKEND) {
+        // Registrar con el backend
+        await registerApi({
+          nombre: formData.nombre.trim(),
+          apellido: formData.apellido.trim(),
+          email: formData.email.trim(),
+          codigo: '',
+          password: formData.password,
+        });
+
+        // Después del registro exitoso, redirigir a la página de login
+        navigate('/login', { replace: true });
+      } else {
+        // Modo mock: guardar en localStorage
+        saveRegisteredUser({
+          email: formData.email.trim(),
+          password: formData.password,
+          nombre: formData.nombre.trim(),
+          apellido: formData.apellido.trim(),
+          codigo: '',
+        });
+        
+        // Redirigir a la página de login
+        navigate('/login', { replace: true });
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al registrarse');
     } finally {
@@ -156,21 +174,6 @@ export function RegisterPage() {
                   required
                   className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent bg-white text-slate-900"
                   placeholder="usuario@utec.edu.pe"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Código de estudiante
-                </label>
-                <input
-                  type="text"
-                  name="codigo"
-                  value={formData.codigo}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent bg-white text-slate-900"
-                  placeholder="U20201234"
                 />
               </div>
 

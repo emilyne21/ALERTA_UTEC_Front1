@@ -24,15 +24,20 @@ export function LoginPage() {
     setLoading(true);
     
     try {
-      // Verificar si el usuario existe
-      const user = getUserByEmail(email);
-      if (!user) {
-        setError('Esta cuenta no está registrada. Por favor, regístrate primero.');
-        setLoading(false);
-        return;
+      const API_URL = import.meta.env.VITE_API_URL;
+      const USE_BACKEND = API_URL && !API_URL.includes('tu-api');
+
+      // Solo verificar localmente si NO estamos usando el backend
+      if (!USE_BACKEND) {
+        const user = getUserByEmail(email);
+        if (!user) {
+          setError('Esta cuenta no está registrada. Por favor, regístrate primero.');
+          setLoading(false);
+          return;
+        }
       }
 
-      // Intentar iniciar sesión
+      // Intentar iniciar sesión (con backend si está configurado, o modo mock)
       await login(email, password);
       navigate('/inicio', { replace: true });
     } catch (err) {

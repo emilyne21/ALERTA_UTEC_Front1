@@ -46,10 +46,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const login = async (email: string, password: string) => {
-    // Simular delay de red
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    // Verificar si el usuario está registrado
+    const API_URL = import.meta.env.VITE_API_URL;
+    const USE_BACKEND = API_URL && !API_URL.includes('tu-api');
+
+    if (USE_BACKEND) {
+      // Intentar login con el backend
+      try {
+        const { login: loginApi } = await import('../services/authApi');
+        const response = await loginApi(email, password);
+
+        // Guardar token y usuario del backend
+        setToken(response.token);
+        setUser(response.usuario);
+        localStorage.setItem(STORAGE_KEY_TOKEN, response.token);
+        localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(response.usuario));
+        return;
+      } catch (error) {
+        // Si el backend falla, lanzar el error para que se muestre al usuario
+        throw error;
+      }
+    }
+
+    // Modo mock: verificar si el usuario está registrado localmente
     const { verifyUser, convertToUsuario } = await import('../utils/userStorage');
     const registeredUser = verifyUser(email, password);
     
@@ -78,6 +96,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(updatedUser));
   };
 
+  const setAuth = (tokenValue: string, usuario: Usuario) => {
+    setToken(tokenValue);
+    setUser(usuario);
+    localStorage.setItem(STORAGE_KEY_TOKEN, tokenValue);
+    localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(usuario));
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -87,6 +112,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         login,
         logout,
         updateUser,
+        setAuth,
         isAuthenticated: !!user && !!token,
       }}
     >

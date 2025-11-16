@@ -1,73 +1,17 @@
 import { useState } from 'react';
 import type { Incidente } from '../types/incidentes';
 import { IncidentStatusBadge } from '../components/incidents/IncidentStatusBadge';
-
-// Datos de plantilla para el historial
-const incidentesPlantilla: Incidente[] = [
-  {
-    id: 'plantilla_1',
-    estado: 'resuelto',
-    reportadoPor: 'estudiante@utec.edu.pe',
-    creadoEn: Math.floor(Date.now() / 1000) - 259200, // Hace 3 días
-    actualizadoEn: Math.floor(Date.now() / 1000) - 172800, // Hace 2 días
-    tipo: 'infraestructura',
-    ubicacion: 'Pabellón A, Piso 2, Aula 205',
-    descripcion: 'Problema con el aire acondicionado que no funcionaba correctamente.',
-    urgencia: 'media',
-    atendidoPor: 'trabajador@utec.edu.pe',
-  },
-  {
-    id: 'plantilla_2',
-    estado: 'resuelto',
-    reportadoPor: 'estudiante@utec.edu.pe',
-    creadoEn: Math.floor(Date.now() / 1000) - 604800, // Hace 1 semana
-    actualizadoEn: Math.floor(Date.now() / 1000) - 518400, // Hace 6 días
-    tipo: 'limpieza',
-    ubicacion: 'Pabellón B, Piso 1, Baño Mujeres',
-    descripcion: 'Limpieza profunda de los baños completada.',
-    urgencia: 'baja',
-    atendidoPor: 'trabajador@utec.edu.pe',
-  },
-  {
-    id: 'plantilla_3',
-    estado: 'resuelto',
-    reportadoPor: 'estudiante@utec.edu.pe',
-    creadoEn: Math.floor(Date.now() / 1000) - 1209600, // Hace 2 semanas
-    actualizadoEn: Math.floor(Date.now() / 1000) - 1036800, // Hace 12 días
-    tipo: 'tecnologia',
-    ubicacion: 'Pabellón C, Laboratorio de Computación',
-    descripcion: 'Reparación de computadoras en el laboratorio.',
-    urgencia: 'alta',
-    atendidoPor: 'trabajador@utec.edu.pe',
-  },
-  {
-    id: 'plantilla_4',
-    estado: 'resuelto',
-    reportadoPor: 'estudiante@utec.edu.pe',
-    creadoEn: Math.floor(Date.now() / 1000) - 1814400, // Hace 3 semanas
-    actualizadoEn: Math.floor(Date.now() / 1000) - 1555200, // Hace 18 días
-    tipo: 'seguridad',
-    ubicacion: 'Pabellón D, Entrada Principal',
-    descripcion: 'Reparación del sistema de seguridad de la entrada.',
-    urgencia: 'alta',
-    atendidoPor: 'trabajador@utec.edu.pe',
-  },
-  {
-    id: 'plantilla_5',
-    estado: 'resuelto',
-    reportadoPor: 'estudiante@utec.edu.pe',
-    creadoEn: Math.floor(Date.now() / 1000) - 2592000, // Hace 1 mes
-    actualizadoEn: Math.floor(Date.now() / 1000) - 2160000, // Hace 25 días
-    tipo: 'infraestructura',
-    ubicacion: 'Pabellón E, Piso 3, Pasillo Principal',
-    descripcion: 'Reparación de iluminación en el pasillo principal.',
-    urgencia: 'media',
-    atendidoPor: 'trabajador@utec.edu.pe',
-  },
-];
+import { useAuth } from '../hooks/useAuth';
+import { useIncidentes } from '../hooks/useIncidentes';
+import { Loader } from '../components/common/Loader';
 
 export function HistorialPage() {
+  const { token } = useAuth();
   const [filtroEstado, setFiltroEstado] = useState<string>('todos');
+  
+  // Usar el hook para cargar incidentes del backend
+  const filters = filtroEstado === 'todos' ? {} : { estado: filtroEstado as any };
+  const { incidentes, loading, error } = useIncidentes(token, filters);
 
   const formatDate = (timestamp: number) => {
     return new Date(timestamp * 1000).toLocaleString('es-PE', {
@@ -99,11 +43,35 @@ export function HistorialPage() {
     return colors[urgencia] || colors.baja;
   };
 
-  const incidentesFiltrados = filtroEstado === 'todos'
-    ? incidentesPlantilla
-    : incidentesPlantilla.filter(inc => inc.estado === filtroEstado);
+  const incidentesOrdenados = [...incidentes].sort((a, b) => b.creadoEn - a.creadoEn);
 
-  const incidentesOrdenados = [...incidentesFiltrados].sort((a, b) => b.creadoEn - a.creadoEn);
+  if (loading) {
+    return (
+      <div className="relative">
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold mb-2" style={{ color: '#4a5a40' }}>Historial de Incidentes</h1>
+          <p style={{ color: '#4a5a40' }}>Revisa los incidentes que se han resuelto anteriormente</p>
+        </div>
+        <div className="flex justify-center py-12">
+          <Loader />
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="relative">
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold mb-2" style={{ color: '#4a5a40' }}>Historial de Incidentes</h1>
+          <p style={{ color: '#4a5a40' }}>Revisa los incidentes que se han resuelto anteriormente</p>
+        </div>
+        <div className="rounded-xl p-12 text-center" style={{ backgroundColor: '#ffffff', boxShadow: '0 2px 10px rgba(0, 0, 0, 0.03)' }}>
+          <p className="text-red-600">{error}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative">

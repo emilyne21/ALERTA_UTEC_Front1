@@ -1,6 +1,6 @@
 # AlertaUTEC Frontend - Dashboard Estudiante
 
-Frontend completo del sistema de gestión de incidentes para UTEC, construido con tecnologías modernas y **simulación completa** de backend y WebSocket para desarrollo y demos.
+Frontend completo del sistema de gestión de incidentes para UTEC, construido con tecnologías modernas y conectado al backend real mediante API REST y WebSocket.
 
 ## 🚀 Stack Tecnológico
 
@@ -10,7 +10,9 @@ Frontend completo del sistema de gestión de incidentes para UTEC, construido co
 - **Estilos**: Tailwind CSS
 - **Router**: React Router DOM
 - **Estado**: Context API + Custom Hooks
-- **Datos**: Mock en memoria (simulación completa sin backend)
+- **HTTP Client**: Axios con interceptores para JWT automático
+- **WebSocket**: Conexión en tiempo real para actualizaciones
+- **Backend**: Conectado a API REST y WebSocket reales
 
 ## ✨ Características Implementadas
 
@@ -45,12 +47,14 @@ Frontend completo del sistema de gestión de incidentes para UTEC, construido co
 npm install
 ```
 
-2. **Crear archivo `.env` (opcional):**
+2. **Configurar variables de entorno:**
 ```bash
-cp .env.example .env
+# Crear archivo .env en la raíz del proyecto
+VITE_API_URL=http://alerta-utec-alb-1269448375.us-east-1.elb.amazonaws.com
+VITE_WS_URL=wss://ufs7epfg85.execute-api.us-east-1.amazonaws.com/dev
 ```
 
-**Nota**: El proyecto funciona completamente sin variables de entorno. Las variables solo se usan cuando hay backend real.
+**Nota**: El proyecto requiere estas variables para conectarse al backend. Sin ellas, funcionará en modo mock.
 
 3. **Ejecutar servidor de desarrollo:**
 ```bash
@@ -62,39 +66,74 @@ npm run dev
 http://localhost:5173
 ```
 
-## 📖 Guía de Uso Completa
+## 📖 Flujo de Uso de la Aplicación
+
+### Flujo Principal: Registro → Login → Dashboard → Gestión de Incidentes
+
+---
 
 ### 1. Registro de Usuario
 
-1. Navega a la página de inicio (`/`)
-2. Haz clic en "Registrarse" o ve directamente a `/register`
-3. Completa el formulario con:
+**Objetivo**: Crear una nueva cuenta en el sistema
+
+1. **Acceso**: 
+   - Navega a la página de inicio (`/`)
+   - Haz clic en "Registrarse" o ve directamente a `/register`
+
+2. **Completar formulario**:
    - **Nombre**: Tu nombre de pila
    - **Apellido**: Tu apellido
-   - **Correo institucional**: Debe terminar en `@utec.edu.pe`
-   - **Código de estudiante**: Tu código único de estudiante
-   - **Contraseña**: Mínimo 6 caracteres
+   - **Correo institucional**: Debe terminar en `@utec.edu.pe` (requerido)
+   - **Contraseña**: Mínimo 6 caracteres (requerido)
    - **Confirmar contraseña**: Debe coincidir con la contraseña
-4. Haz clic en "Registrarse"
-5. Serás redirigido automáticamente a la página de login
 
-**Nota**: Los datos se guardan en `localStorage` del navegador. Si limpias el almacenamiento, deberás registrarte nuevamente.
+3. **Enviar registro**:
+   - Haz clic en "Registrarse"
+   - El sistema envía los datos al backend (`POST /auth/register`)
+   - El rol se asigna automáticamente como "usuario"
+
+4. **Resultado**:
+   - Serás redirigido automáticamente a la página de login (`/login`)
+   - Tu cuenta quedará registrada en el backend
+
+**Nota**: El código de estudiante fue removido del formulario. Solo se requieren nombre, apellido, email y contraseña.
 
 ### 2. Inicio de Sesión
 
-1. Ve a la página de login (`/login`)
-2. Ingresa tu correo institucional y contraseña
-3. Haz clic en "Iniciar sesión"
-4. También puedes usar "Iniciar sesión con Google" (funcionalidad pendiente de implementar)
-5. Si la cuenta no está registrada, verás un mensaje de error con un enlace para registrarte
-6. Serás redirigido automáticamente al dashboard de inicio (`/inicio`)
+**Objetivo**: Autenticarse en el sistema con credenciales válidas
+
+1. **Acceso**:
+   - Ve a la página de login (`/login`)
+   - O desde la página de inicio, haz clic en "Iniciar sesión"
+
+2. **Ingresar credenciales**:
+   - **Correo institucional**: Tu email registrado (debe ser `@utec.edu.pe`)
+   - **Contraseña**: La contraseña que usaste al registrarte
+
+3. **Autenticación**:
+   - Haz clic en "Iniciar sesión"
+   - El sistema envía las credenciales al backend (`POST /auth/login`)
+   - El backend valida las credenciales y devuelve un token JWT
+
+4. **Resultado exitoso**:
+   - El token JWT se guarda automáticamente en `localStorage`
+   - Tu información de usuario se guarda en el contexto de autenticación
+   - Serás redirigido automáticamente al dashboard de inicio (`/inicio`)
+
+5. **Manejo de errores**:
+   - Si las credenciales son incorrectas, verás un mensaje de error
+   - Si la cuenta no existe, verás un mensaje con enlace para registrarte
+
+**Nota**: El token JWT se añade automáticamente a todas las peticiones HTTP mediante interceptores de Axios.
 
 ### 3. Dashboard de Inicio
 
-Al iniciar sesión, verás el dashboard principal con:
+**Objetivo**: Vista general con estadísticas y acceso rápido a funcionalidades
+
+Al iniciar sesión, serás redirigido a `/inicio` donde verás:
 
 - **Banner de bienvenida**: 
-  - Saludo personalizado "Hola, [Tu Nombre]"
+  - Saludo personalizado "Hola, [Tu Nombre]" usando tu nombre del perfil
   - Imagen del comegalletas sobrepuesta a la derecha
   
 - **Tarjetas de estadísticas** (3 tarjetas):
@@ -106,61 +145,100 @@ Al iniciar sesión, verás el dashboard principal con:
   - **Mis Incidentes**: Acceso rápido con descripción
   - **Historial**: Acceso al historial de incidentes resueltos
 
+**Nota**: Las estadísticas se cargan desde el backend usando `GET /incidentes` con filtros.
+
 ### 4. Gestión de Incidentes
 
 #### Ver Mis Incidentes
 
-1. Haz clic en "Mis Incidentes" en el sidebar (ícono de hojas) o en la página de inicio
-2. Verás:
+**Objetivo**: Ver todos tus incidentes reportados y su estado actual
+
+1. **Acceso**:
+   - Haz clic en "Mis Incidentes" en el sidebar (ícono de hojas)
+   - O desde la página de inicio, haz clic en la sección "Mis Incidentes"
+
+2. **Vista de la página** (`/usuario`):
    - **Tarjetas de resumen** en la parte superior:
-     - Pendientes
-     - En Atención
-     - Resueltos
-     - Total
+     - Pendientes: Incidentes sin asignar
+     - En Atención: Incidentes asignados a un trabajador
+     - Resueltos: Incidentes completados
+     - Total: Suma de todos los incidentes
    - **Lista de incidentes** ordenados por más recientes primero
    - **Indicador de conexión WebSocket** mostrando estado en tiempo real
    - **Botón "+ Nuevo incidente"** para crear reportes
 
+3. **Carga de datos**:
+   - Los incidentes se cargan desde el backend usando `GET /incidentes`
+   - El token JWT se añade automáticamente a la petición
+   - Los filtros se aplican como query parameters
+
 #### Crear un Nuevo Incidente
 
-1. En la página "Mis Incidentes", haz clic en el botón "+ Nuevo incidente"
-2. Se mostrará un formulario. Completa:
-   - **Tipo**: Selecciona entre:
+**Objetivo**: Reportar un nuevo problema o incidente en el campus
+
+1. **Abrir formulario**:
+   - En la página "Mis Incidentes", haz clic en el botón "+ Nuevo incidente"
+   - Se mostrará un formulario modal
+
+2. **Completar información**:
+   - **Tipo** (requerido): Selecciona entre:
      - Infraestructura
      - Limpieza
      - Seguridad
      - Tecnología
      - Otro
-   - **Ubicación**: Describe dónde ocurre el incidente (ej: "Pabellón A, Piso 3, Aula 301")
-   - **Descripción**: Explica detalladamente el problema
-   - **Urgencia**: Selecciona el nivel:
+   - **Ubicación** (requerido): Describe dónde ocurre el incidente
+     - Ejemplo: "Pabellón A, Piso 3, Aula 301"
+   - **Descripción** (requerido): Explica detalladamente el problema
+   - **Urgencia** (requerido): Selecciona el nivel:
      - Baja
      - Media
      - Alta
-3. Haz clic en "Reportar incidente"
-4. **Observa**: 
+
+3. **Enviar reporte**:
+   - Haz clic en "Reportar incidente"
+   - El sistema envía los datos al backend (`POST /incidentes`)
+   - El token JWT se añade automáticamente
+   - El backend crea el incidente y dispara notificaciones WebSocket
+
+4. **Resultado**:
    - El incidente aparece inmediatamente en la lista (actualización optimista)
-   - Después de ~800ms, verás un toast de confirmación del servidor
+   - Recibirás un toast de confirmación
    - El formulario se oculta automáticamente
+   - El incidente queda en estado "pendiente" inicialmente
 
 #### Ver Detalles de un Incidente
 
-1. Haz clic en cualquier incidente de la lista
-2. Se abrirá un **panel lateral** desde la derecha con:
+**Objetivo**: Ver información completa y cronología de un incidente específico
+
+1. **Abrir panel de detalles**:
+   - Haz clic en cualquier incidente de la lista
+   - Se abrirá un **panel lateral** desde la derecha
+
+2. **Información mostrada**:
    - **Información completa** del incidente:
-     - Estado actual
-     - Tipo y urgencia
-     - Ubicación y descripción
+     - Estado actual (pendiente, en_atencion, resuelto)
+     - Tipo y urgencia con badges de color
+     - Ubicación y descripción completa
      - Fecha de creación y última actualización
      - Trabajador asignado (si aplica)
-   - **Timeline/Historial**: 
-     - Línea de tiempo visual con todas las acciones
-     - Muestra quién hizo qué y cuándo
-   - **Formulario de comentarios**: 
-     - Agrega comentarios adicionales al incidente
-   - **Chat**: 
-     - Si hay un trabajador asignado, podrás chatear con él
-     - Los mensajes se actualizan automáticamente cada 3 segundos
+
+3. **Historial/Timeline**:
+   - Se carga automáticamente desde el backend (`GET /incidentes/:id/historial`)
+   - Línea de tiempo visual con todas las acciones realizadas
+   - Muestra quién hizo qué y cuándo:
+     - CREADO: Cuando se reportó el incidente
+     - ASIGNADO: Cuando un trabajador tomó el caso
+     - RESUELTO: Cuando se completó la solución
+     - COMENTARIO: Comentarios agregados por usuarios o trabajadores
+
+4. **Formulario de comentarios**:
+   - Agrega comentarios adicionales al incidente
+   - Los comentarios se guardan en el historial
+
+5. **Chat** (si aplica):
+   - Si hay un trabajador asignado, podrás chatear con él
+   - Los mensajes se sincronizan mediante WebSocket
 
 #### Agregar Comentarios
 
@@ -193,20 +271,35 @@ Al iniciar sesión, verás el dashboard principal con:
 
 ### 6. Historial de Incidentes
 
-1. Haz clic en "Historial" en el sidebar (ícono de reloj) o en la página de inicio
-2. Verás todos los incidentes resueltos anteriormente
+**Objetivo**: Ver todos los incidentes reportados con filtros por estado
+
+1. **Acceso**:
+   - Haz clic en "Historial" en el sidebar (ícono de reloj)
+   - O desde la página de inicio, haz clic en la sección "Historial"
+
+2. **Carga de datos**:
+   - Los incidentes se cargan desde el backend usando `GET /incidentes`
+   - Se aplican filtros según el estado seleccionado
+   - El token JWT se añade automáticamente
+
 3. **Filtros disponibles**:
-   - **Todos**: Muestra todos los incidentes
-   - **Pendientes**: Solo incidentes pendientes
-   - **En Atención**: Solo incidentes en atención
-   - **Resueltos**: Solo incidentes resueltos
-4. Cada incidente muestra:
+   - **Todos**: Muestra todos los incidentes (sin filtro)
+   - **Pendientes**: Solo incidentes en estado pendiente
+   - **En Atención**: Solo incidentes asignados a trabajadores
+   - **Resueltos**: Solo incidentes completados
+
+4. **Información mostrada**:
    - Estado final con badge de color
    - Tipo y urgencia
    - Ubicación y descripción
-   - Fecha de creación y resolución
+   - Fecha de creación y última actualización
    - Trabajador que lo atendió (si aplica)
-5. Los incidentes están ordenados por más recientes primero
+
+5. **Ordenamiento**:
+   - Los incidentes están ordenados por más recientes primero
+   - Basado en la fecha de creación (`creadoEn`)
+
+**Nota**: Para ver el historial detallado (timeline) de un incidente específico, abre el panel de detalles desde "Mis Incidentes".
 
 ### 7. Editar Perfil
 
@@ -247,24 +340,37 @@ Al iniciar sesión, verás el dashboard principal con:
   - Badge de rol (Estudiante)
 - **Cerrar sesión**: Botón para salir de la aplicación
 
-### 9. Actualizaciones en Tiempo Real
+### 9. Actualizaciones en Tiempo Real (WebSocket)
 
-El sistema simula actualizaciones en tiempo real mediante WebSocket:
+**Objetivo**: Recibir notificaciones instantáneas sobre cambios en los incidentes
 
-1. **Indicador de conexión**: 
+1. **Conexión WebSocket**:
+   - Se establece automáticamente al iniciar sesión
+   - Usa la URL configurada en `VITE_WS_URL`
+   - El token JWT se envía como parámetro en la URL de conexión
+   - Conexión persistente durante toda la sesión
+
+2. **Indicador de conexión**: 
    - En la página "Mis Incidentes", verás un indicador en el header
-   - Punto verde pulsante = Conectado
+   - Punto verde pulsante = Conectado al WebSocket
    - Punto rojo = Desconectado
    - Muestra "En tiempo real" cuando está conectado
    - Muestra la última sincronización (ej: "Hace 5s")
 
-2. **Actualizaciones automáticas**:
-   - Cada 8-15 segundos, un incidente puede cambiar de estado automáticamente
-   - Recibirás un toast/notificación cuando esto ocurra
-   - El incidente se actualiza en la lista sin recargar la página
-   - Si el panel de detalles está abierto, también se actualiza
+3. **Tipos de actualizaciones recibidas**:
+   - **Nuevo incidente**: Cuando se crea un incidente
+   - **Actualización de incidente**: Cuando cambia el estado, se asigna, o se resuelve
+   - **Nuevo comentario**: Cuando se agrega un comentario
+   - **Mensajes de chat**: Mensajes del trabajador asignado
 
-3. **Notificaciones toast**:
+4. **Comportamiento**:
+   - Las actualizaciones se reciben en tiempo real
+   - Recibirás un toast/notificación cuando ocurra un cambio
+   - El incidente se actualiza en la lista sin recargar la página
+   - Si el panel de detalles está abierto, también se actualiza automáticamente
+   - Reconexión automática si se pierde la conexión
+
+5. **Notificaciones toast**:
    - Aparecen en la esquina superior derecha
    - Diferentes tipos: éxito (verde), error (rojo), info (azul)
    - Se ocultan automáticamente después de unos segundos
@@ -379,31 +485,61 @@ Edita `src/services/wsMock.ts`:
 - ✅ **Error Handling**: Simula un error (puedes forzar desconexión WS en el código)
 - ✅ **Responsive**: Prueba en mobile y desktop, verifica que todo se adapta
 
-## 🔌 Integración con Backend Real
+## 🔌 Integración con Backend
 
-Cuando el backend esté listo:
+La aplicación está **conectada al backend real** mediante:
 
-1. **Configurar variables de entorno:**
+### Configuración de Variables de Entorno
+
+El archivo `.env` debe contener:
 ```env
-VITE_API_URL=https://tu-api.com
-VITE_WS_URL=wss://tu-api.com/ws
+VITE_API_URL=http://alerta-utec-alb-1269448375.us-east-1.elb.amazonaws.com
+VITE_WS_URL=wss://ufs7epfg85.execute-api.us-east-1.amazonaws.com/dev
 ```
 
-2. **Reemplazar servicios mock:**
-- `src/services/incidentesApi.ts` - Ya está preparado para llamadas reales
-- `src/services/wsMock.ts` - Reemplazar con WebSocket real
-- `src/hooks/useIncidentes.ts` - Cambiar de datos mock a llamadas API
+### Endpoints Utilizados
 
-3. **Actualizar AuthContext:**
-- `src/context/AuthContext.tsx` - Usar `login()` real en lugar de `loginAs()`
+#### Autenticación
+- `POST /auth/login` - Iniciar sesión
+- `POST /auth/register` - Registrar nuevo usuario
+
+#### Incidentes
+- `GET /incidentes` - Listar todos los incidentes (con filtros opcionales: estado, tipo, urgencia)
+- `POST /incidentes` - Crear nuevo incidente
+- `GET /incidentes/:id` - Obtener un incidente específico
+- `GET /incidentes/:id/historial` - Obtener historial de un incidente
+- `PATCH /incidentes/:id/asignar` - Asignar incidente a trabajador
+- `PATCH /incidentes/:id/resolver` - Marcar incidente como resuelto
+
+### Cliente HTTP (Axios)
+
+- **Ubicación**: `src/services/apiClient.ts`
+- **Características**:
+  - Interceptor automático para añadir token JWT a todas las peticiones
+  - Manejo centralizado de errores
+  - Limpieza automática de token en caso de 401 (no autorizado)
+
+### Cliente WebSocket
+
+- **Ubicación**: `src/services/socket.ts`
+- **Características**:
+  - Reconexión automática
+  - Envío de token JWT en la URL de conexión
+  - Manejo de eventos de conexión/desconexión
+
+### Modo Mock (Fallback)
+
+Si las variables de entorno no están configuradas o contienen valores por defecto, la aplicación funciona en modo mock usando datos en memoria.
 
 ## 📝 Notas Técnicas
 
 - **Optimistic UI**: Los incidentes se agregan inmediatamente a la lista antes de confirmación del servidor
-- **WebSocket Mock**: Usa `setInterval` para simular eventos periódicos
-- **Persistencia**: Los usuarios registrados se guardan en `localStorage`
-- **Estado Global**: Los incidentes se mantienen en memoria durante la sesión
-- **TypeScript**: Todo el código está tipado para mejor DX
+- **WebSocket Real**: Conexión persistente con reconexión automática
+- **Autenticación JWT**: Token almacenado en `localStorage` y añadido automáticamente a todas las peticiones
+- **Interceptores Axios**: Manejo automático de autenticación y errores
+- **Estado Global**: Los incidentes se mantienen en el estado de React durante la sesión
+- **TypeScript**: Todo el código está tipado para mejor experiencia de desarrollo
+- **Responsive Design**: Adaptado para desktop, tablet y mobile
 
 ## 🐛 Troubleshooting
 

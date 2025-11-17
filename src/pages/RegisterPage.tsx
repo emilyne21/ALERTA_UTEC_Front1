@@ -1,7 +1,5 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../hooks/useAuth';
-import studentsLoginImage from '../assets/students_login.jpg';
 import alertaImage from '../assets/alerta.png';
 import { INTRANET_URL } from '../config/constants';
 import { UserGuideModal } from '../components/common/UserGuideModal';
@@ -22,7 +20,6 @@ export function RegisterPage() {
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [isPrivacyOpen, setIsPrivacyOpen] = useState(false);
   const navigate = useNavigate();
-  const { setAuth } = useAuth();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({

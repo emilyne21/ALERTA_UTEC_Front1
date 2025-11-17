@@ -1,7 +1,6 @@
 import { useAuth } from '../hooks/useAuth';
 import { useIncidentes } from '../hooks/useIncidentes';
 import comegalletasImg from '../assets/comegalletas-Photoroom.png';
-import casaIcon from '../assets/casa.png';
 import hojasIcon from '../assets/hojas.png';
 import relojIcon from '../assets/reloj.png';
 

@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import type { Incidente } from '../types/incidentes';
 import { IncidentStatusBadge } from '../components/incidents/IncidentStatusBadge';
 import { useAuth } from '../hooks/useAuth';
 import { useIncidentes } from '../hooks/useIncidentes';

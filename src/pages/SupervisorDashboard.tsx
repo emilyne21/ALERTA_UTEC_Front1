@@ -1,7 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useIncidentes } from '../hooks/useIncidentes';
-import { useToast } from '../components/common/ToastProvider';
 import { IncidentTable } from '../components/incidents/IncidentTable';
 import { IncidentFilters } from '../components/incidents/IncidentFilters';
 import { IncidentDetailPage } from './IncidentDetailPage';
@@ -12,7 +11,6 @@ export function SupervisorDashboard() {
   const { token } = useAuth();
   const [filters, setFilters] = useState<IncidenteFilters>({});
   const { incidentes, loading, error, obtenerHistorial } = useIncidentes(token || '', filters);
-  const { showToast } = useToast();
   const [selectedIncident, setSelectedIncident] = useState<Incidente | null>(null);
 
   // Calcular estadísticas

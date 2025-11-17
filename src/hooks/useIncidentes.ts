@@ -199,8 +199,8 @@ export function useIncidentes(token: string | null, filters: IncidenteFilters = 
       historialEnMemoria[id].push({
         timestamp: incidente.actualizadoEn,
         accion: 'ASIGNADO',
-        realizadoPor: incidente.atendidoPor,
-        detalles: `Incidente asignado a ${incidente.atendidoPor}`,
+        realizadoPor: incidente.atendidoPor || 'Sistema',
+        detalles: `Incidente asignado a ${incidente.atendidoPor || 'Sistema'}`,
       });
       
       setIncidentes((prev) =>

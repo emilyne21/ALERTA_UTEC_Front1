@@ -1,8 +1,6 @@
 import { createContext, useContext, useEffect, useState, useRef, ReactNode } from 'react';
 import type { WebSocketMessage } from '../types/incidentes';
 
-const WS_URL = import.meta.env.VITE_WS_URL;
-
 interface WebSocketContextType {
   lastMessage: WebSocketMessage | null;
   isConnected: boolean;

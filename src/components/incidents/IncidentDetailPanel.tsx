@@ -5,7 +5,6 @@ import { useState, useEffect } from 'react';
 import { IncidentStatusBadge } from './IncidentStatusBadge';
 import { IncidentTimeline } from './IncidentTimeline';
 import { Button } from '../common/Button';
-import { Input } from '../common/Input';
 import { Loader } from '../common/Loader';
 import type { Incidente, HistorialItem } from '../../types/incidentes';
 
@@ -22,7 +21,6 @@ export function IncidentDetailPanel({
   onClose,
   obtenerHistorial,
   agregarComentario,
-  onUpdate,
 }: IncidentDetailPanelProps) {
   const [historial, setHistorial] = useState<HistorialItem[]>([]);
   const [loadingHistorial, setLoadingHistorial] = useState(false);

@@ -123,7 +123,7 @@ export function UsuarioDashboard() {
   }) => {
     try {
       // Optimistic update: crear el incidente inmediatamente
-      const nuevoIncidente = await crearIncidente(data);
+      await crearIncidente(data);
       setShowForm(false);
       showToast('Incidente reportado exitosamente', 'success');
       

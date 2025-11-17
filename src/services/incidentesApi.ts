@@ -11,7 +11,7 @@ const API_URL = import.meta.env.VITE_API_URL;
  */
 export async function listarIncidentes(
   filters: IncidenteFilters = {},
-  token: string
+  _token: string
 ): Promise<Incidente[]> {
   if (!API_URL || API_URL.includes('tu-api')) {
     throw new Error('Backend no configurado. Usando modo mock.');
@@ -55,7 +55,7 @@ export async function crearIncidente(
     descripcion: string;
     urgencia: string;
   },
-  token: string
+  _token: string
 ): Promise<Incidente> {
   if (!API_URL || API_URL.includes('tu-api')) {
     throw new Error('Backend no configurado. Usando modo mock.');
@@ -131,7 +131,7 @@ export async function resolverIncidente(id: string, token: string): Promise<Inci
  */
 export async function obtenerHistorial(
   id: string,
-  token: string
+  _token: string
 ): Promise<HistorialItem[]> {
   if (!id) {
     throw new Error('ID de incidente no proporcionado');

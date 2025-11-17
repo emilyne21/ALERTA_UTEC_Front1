@@ -19,8 +19,6 @@ export function Navbar({ onToggleSidebar, sidebarVisible }: NavbarProps) {
 
   const getRoleLabel = () => 'Estudiante';
 
-  const getRoleColor = () => 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50';
-
   return (
     <nav style={{ backgroundColor: '#adcc9c', borderBottom: '1px solid #7d9670' }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

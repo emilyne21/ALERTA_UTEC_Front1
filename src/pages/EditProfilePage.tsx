@@ -8,7 +8,7 @@ import type { Usuario } from '../types/auth';
 import comegalletasPerfilImg from '../assets/comegalletas_perfil-Photoroom.png';
 
 export function EditProfilePage() {
-  const { user, token, login, updateUser } = useAuth();
+  const { user, login, updateUser } = useAuth();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     nombre: '',
